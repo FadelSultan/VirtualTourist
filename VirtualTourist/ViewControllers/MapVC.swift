@@ -8,11 +8,14 @@
 
 import UIKit
 import MapKit
+import CoreData
 
 class MapVC: UIViewController {
     
+    
     //    outlet
     @IBOutlet weak var mapView: MKMapView!
+    
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -32,38 +35,40 @@ class MapVC: UIViewController {
     }
     
     private func loadLocalLocations() {
-        for location in modelLocation.coordinates {
-            addPin(to: location.coordinate)
+        for pin in DataController.shared.localDataPins {
+            addPin(to: pin.coordinate , isSavePin: false)
         }
     }
     
     
-    private func addPin(to:CLLocationCoordinate2D) {
+    private func addPin(to:CLLocationCoordinate2D , isSavePin:Bool = true) {
         let annotation = MKPointAnnotation()
         let centerCoordinate = CLLocationCoordinate2D(latitude: to.latitude, longitude:to.longitude)
         annotation.coordinate = centerCoordinate
         mapView.addAnnotation(annotation)
-        DB.location.insert(location: centerCoordinate) { (result) in
-            switch result {
-            case .success(let id):
-                self.OpenPhotosVC(location: centerCoordinate , idLocation: id)
-                let newLocation = modelLocation(id: id, coordinate: centerCoordinate)
-                modelLocation.coordinates.append(newLocation)
-            case .failure(let error):
-                print(error)
+
+        if isSavePin {
+            DataController.shared.insert(pin: centerCoordinate) { (result) in
+                switch result {
+                case .failure(let er):
+                    self.alert(message: er.localizedDescription)
+                case .success(let pin):
+                    self.openPhotosVC(location: pin.coordinate , pin: pin , isSavePhoto: true)
+                }
             }
         }
     }
     
-    private func OpenPhotosVC(location:CLLocationCoordinate2D?=nil , idLocation:Int64? = nil) {
+    private func openPhotosVC(location:CLLocationCoordinate2D?=nil , pin:Pin? = nil , isSavePhoto:Bool = false) {
         let SB = UIStoryboard(name: "Main", bundle: nil)
         let vc = SB.instantiateViewController(withIdentifier: "PhotosVC") as! PhotosVC
         if let location = location {
             vc.locationCoordinate = location
         }
-        if let idLocation = idLocation {
-            vc.idLocation = idLocation
+        if let pin = pin {
+            vc.pin = pin
         }
+        vc.isSavePhotos = isSavePhoto
         self.navigationController?.pushViewController(vc, animated: true)
     }
 }
@@ -72,8 +77,15 @@ class MapVC: UIViewController {
 extension MapVC : MKMapViewDelegate {
     func mapView(_ mapView: MKMapView, didSelect view: MKAnnotationView) {
         if let location = view.annotation?.coordinate {
-            let location = modelLocation.coordinates.last(where: {$0.coordinate.latitude == location.latitude && $0.coordinate.longitude == location.longitude})
-            OpenPhotosVC(idLocation: location?.id)
+            let fetchRequest:NSFetchRequest<Pin> = Pin.fetchRequest()
+            do {
+                let result = try DataController.shared.viewContext.fetch(fetchRequest)
+                if let pin = result.first(where: {$0.latitude == location.latitude && $0.longitude == location.longitude}) {
+                    openPhotosVC(pin: pin)
+                }
+            }catch let error {
+                fatalError(error.localizedDescription)
+            }
         }
     }
 }

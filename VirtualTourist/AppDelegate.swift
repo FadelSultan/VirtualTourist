@@ -8,20 +8,27 @@
 
 import UIKit
 
+
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
     
-        DB.location.locations { (result) in
-            switch result {
-            case .success(let locations):
-                modelLocation.coordinates = locations
-            case .failure(_):
-                print("Nothing")
-            }
-        }  
+
+        DataController.shared.load()
         return true
+    }
+    
+    func saveViewContext() {
+        try? DataController.shared.viewContext.save()
+    }
+    
+    func applicationDidEnterBackground(_ application: UIApplication) {
+        saveViewContext()
+    }
+    
+    func applicationWillTerminate(_ application: UIApplication) {
+        saveViewContext()
     }
 }
 

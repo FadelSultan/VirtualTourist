@@ -9,12 +9,11 @@
 import Foundation
 import MapKit
 
-// get data from flickr api
 struct Locations:Codable {
     var photos:Photos?
     var stat:String?
     
-    static func get(url:String , compilcationHandler:@escaping(Swift.Result<[Photo] , Error>)->Void) {
+    static func get(url:String , compilcationHandler:@escaping(Swift.Result<[mPhoto] , Error>)->Void) {
         API.webService(url: url) { (result) in
             switch result {
             case .success(let data):
@@ -35,10 +34,10 @@ struct Photos:Codable {
     var pages:Int?
     var perpage:Int?
     var total:String?
-    var photo = [Photo]()
+    var photo = [mPhoto]()
 }
 
-struct Photo:Codable {
+struct mPhoto:Codable {
     var id:String?
     var owner:String?
     var secret:String?
@@ -54,12 +53,3 @@ struct Photo:Codable {
 }
 
 
-// get data from local database
-struct modelLocation {
-    
-    static var coordinates = [modelLocation]()
-    
-    var id:Int64
-    var coordinate:CLLocationCoordinate2D
-    
-}

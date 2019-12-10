@@ -8,6 +8,7 @@
 
 import UIKit
 import MapKit
+import CoreData
 
 class PhotosVC: UIViewController {
     
@@ -16,19 +17,21 @@ class PhotosVC: UIViewController {
     @IBOutlet weak var emptyPhotos: UIView!
     
     //    variables
-    var photos = [Photo]()
-    var localPhotos = [UIImage]()
+    var photos = [mPhoto]()
+    var localPhotos = [Photo]()
     
     var locationCoordinate:CLLocationCoordinate2D?
-    var idLocation:Int64?
+    var pin:Pin?
+    var isSavePhotos:Bool = false
     
     override func viewDidLoad() {
         super.viewDidLoad()
-
+        
         downloadPhotos()
     }
     
     private func downloadPhotos() {
+        
         if let locationCoordinate = locationCoordinate {
             self.photos.removeAll()
             cProgress.start(add: view, text: "Load data")
@@ -46,26 +49,25 @@ class PhotosVC: UIViewController {
                     self.alert(message: error.localizedDescription)
                 }
             }
-        }else {
-            if let idLocation = idLocation {
-                DB.images.getPhotos(idLocation: idLocation) { (result) in
-                    switch result {
-                    case .success(let photos):
-                        if photos.count == 0 {
-                            self.emptyPhotos.isHidden = false
-                            return
-                        }
-                        self.localPhotos = photos
-                        self.collectionView.reloadData()
-                    case .failure(let error):
-                        self.alert(message: error.localizedDescription)
-                    }
+        }
+        if !isSavePhotos {
+            if let pin = pin {
+                do {
+                    let fetchRequest:NSFetchRequest<Photo> = Photo.fetchRequest()
+                    let predicate = NSPredicate(format: "pin == %@", pin)
+                    fetchRequest.predicate = predicate
+                    self.localPhotos = try DataController.shared.viewContext.fetch(fetchRequest)
+                    print(localPhotos.count)
+                    self.collectionView.reloadData()
+                }catch let error {
+                    fatalError(error.localizedDescription)
                 }
             }
+
         }
     }
     
-//    Actions
+    //    Actions
     @IBAction func btnRefresh(_ sender: UIBarButtonItem) {
         downloadPhotos()
     }
@@ -81,7 +83,7 @@ extension PhotosVC : UICollectionViewDataSource {
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "PhotoCell", for: indexPath) as! PhotoCell
         if locationCoordinate != nil {
-            cell.online(photo: self.photos[indexPath.row] , idLocation: idLocation ?? 0)
+            cell.online(photo: self.photos[indexPath.row] , pin: pin)
         }else {
             cell.offline(photo: localPhotos[indexPath.row])
         }

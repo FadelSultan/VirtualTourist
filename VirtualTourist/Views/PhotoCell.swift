@@ -16,14 +16,14 @@ class PhotoCell: UICollectionViewCell {
     @IBOutlet weak var viewBackground: UIView!
     @IBOutlet weak var IVphoto: UIImageView!
     
-//    General
+    //    General
     let hud = JGProgressHUD(style: .light)
     override func draw(_ rect: CGRect) {
         super.draw(rect)
         hud.show(in: viewBackground)
     }
     
-    func online(photo:Photo , idLocation:Int64? = nil) {
+    func online(photo:mPhoto , pin:Pin? = nil) {
         
         let emptyPhoto =  UIImage(named: "noimage")
         
@@ -35,28 +35,37 @@ class PhotoCell: UICollectionViewCell {
             self.IVphoto.image = emptyPhoto
             return
         }
-        
-        if let idLocation = idLocation {
+        if let pin = pin {
             self.IVphoto.kf.setImage(with: url) { (result) in
                 switch result {
                 case .success(let value):
-                    DB.images.insert(photo: value.image, idLocation: idLocation) { (resultInsert) in
-                        switch resultInsert {
-                        case .success(let msg):
-                            print(msg)
-                        case .failure(let error):
-                            print(error)
+                    if let imageData = value.image.pngData() {
+                        DataController.shared.insert(imageData: imageData , imageUrl: url, pin: pin) { (resultSave) in
+                            switch resultSave {
+                                
+                            case .success(_):
+                                print("Image save")
+                            case .failure(let error):
+                                fatalError(error.localizedDescription)
+                            }
                         }
                     }
+                    
                 case .failure(_):
-                    print("Not found images")
+                    fatalError("Not found images")
                 }
             }
+        }else {
+            self.IVphoto.kf.setImage(with: url)
+        }
+    
+    }
+    
+    func offline(photo:Photo) {
+        if let image = photo.imageData {
+            IVphoto.image = UIImage(data: image)
         }
         
     }
-    
-    func offline(photo:UIImage) {
-        IVphoto.image = photo
-    }
 }
+
