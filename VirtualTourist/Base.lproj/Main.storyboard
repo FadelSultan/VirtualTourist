@@ -75,7 +75,7 @@
                                             <rect key="frame" x="0.0" y="0.0" width="249" height="210"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                             <subviews>
-                                                <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="tJs-dQ-imP">
+                                                <view userInteractionEnabled="NO" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="tJs-dQ-imP">
                                                     <rect key="frame" x="0.0" y="0.0" width="249" height="210"/>
                                                     <color key="backgroundColor" systemColor="systemBackgroundColor" cocoaTouchSystemColor="whiteColor"/>
                                                 </view>

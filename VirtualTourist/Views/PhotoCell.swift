@@ -52,7 +52,7 @@ class PhotoCell: UICollectionViewCell {
                     }
                     
                 case .failure(_):
-                    fatalError("Not found images")
+                    print("Nothing image")
                 }
             }
         }else {

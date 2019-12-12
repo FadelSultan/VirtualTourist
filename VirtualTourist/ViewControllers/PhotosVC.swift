@@ -19,7 +19,7 @@ class PhotosVC: UIViewController {
     //    variables
     var photos = [mPhoto]()
     var localPhotos = [Photo]()
-    
+    var counterPages = 1
     var locationCoordinate:CLLocationCoordinate2D?
     var pin:Pin?
     var isSavePhotos:Bool = false
@@ -27,23 +27,30 @@ class PhotosVC: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        downloadPhotos()
+        downloadPhotos(page: counterPages)
     }
     
-    private func downloadPhotos() {
+    private func downloadPhotos(page:Int) {
         
         if let locationCoordinate = locationCoordinate {
-            self.photos.removeAll()
-            cProgress.start(add: view, text: "Load data")
-            Locations.get(url: URLs.getUrl(coordinate: locationCoordinate)) { (result) in
+            
+            cProgress.start(add: view, text: "Load data \n Page:\(page)")
+            Locations.get(url: URLs.getUrl(coordinate: locationCoordinate , page: page)) { (result) in
                 cProgress.hide()
                 switch result {
                 case .success(let photos):
-                    if photos.count == 0 {
+                    if photos.count == 0 && page == 1{
                         self.emptyPhotos.isHidden = false
                         return
                     }
+                     if photos.count == 0 && page != 1{
+                        self.alert(message: "No more photos")
+                        self.counterPages = 1
+                        return
+                    }
+                    self.photos.removeAll()
                     self.photos = photos
+                    self.collectionView.scrollToItem(at: IndexPath(row: 0, section: 0), at: UICollectionView.ScrollPosition.top, animated: true)
                     self.collectionView.reloadData()
                 case .failure(let error):
                     self.alert(message: error.localizedDescription)
@@ -57,7 +64,6 @@ class PhotosVC: UIViewController {
                     let predicate = NSPredicate(format: "pin == %@", pin)
                     fetchRequest.predicate = predicate
                     self.localPhotos = try DataController.shared.viewContext.fetch(fetchRequest)
-                    print(localPhotos.count)
                     self.collectionView.reloadData()
                 }catch let error {
                     fatalError(error.localizedDescription)
@@ -69,7 +75,8 @@ class PhotosVC: UIViewController {
     
     //    Actions
     @IBAction func btnRefresh(_ sender: UIBarButtonItem) {
-        downloadPhotos()
+        counterPages += 1
+        downloadPhotos(page: counterPages)
     }
     
 }
@@ -82,15 +89,34 @@ extension PhotosVC : UICollectionViewDataSource {
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "PhotoCell", for: indexPath) as! PhotoCell
+       
         if locationCoordinate != nil {
             cell.online(photo: self.photos[indexPath.row] , pin: pin)
         }else {
             cell.offline(photo: localPhotos[indexPath.row])
         }
+        
         return cell
     }
 }
 
+
+extension PhotosVC : UICollectionViewDelegate {
+    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        
+        DataController.shared.deletePhoto(photo: localPhotos[indexPath.row]) { (result) in
+            switch result {
+            case .success(_):
+                collectionView.deleteItems(at: [indexPath])
+                localPhotos.remove(at: indexPath.row)
+            case .failure(let error):
+                alert(message: error.localizedDescription)
+            }
+        }
+    }
+}
+
+//MARK:- UICollectionViewDelegateFlowLayout
 extension PhotosVC : UICollectionViewDelegateFlowLayout {
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
         if collectionView == collectionView {

@@ -47,6 +47,16 @@ class DataController {
         }
     }
     
+    func deletePhoto(photo:Photo , compilation:(Result<Bool , Error>)->Void) {
+        viewContext.delete(photo)
+        do {
+            try viewContext.save()
+            compilation(.success(true))
+        }catch let error {
+            compilation(.failure(error))
+        }
+    }
+    
     func insert(imageData:Data ,imageUrl:URL ,pin:Pin , compilation:(Result<Photo , Error>)->Void) {
         let newPhoto = Photo(context: viewContext)
         newPhoto.imageData = imageData
